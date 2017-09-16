@@ -906,9 +906,12 @@ function keyUpHandler(e) {
     }
 }
 
-function mouseMoveHandler(e) {
-    relativeX = (e.pageX - document.getElementById('game_object').offsetLeft) - document.getElementById('main').offsetLeft;
-    relativeY = (e.pageY - document.getElementById('game_object').offsetTop) - document.getElementById('main').offsetTop;
+function mouseMoveHandler(evt) {
+    var rect = canvas.getBoundingClientRect();
+    relativeX = evt.clientX - rect.left;
+    relativeY = evt.clientY - rect.top;
+    //relativeX = (e.pageX - document.getElementById('game_object').offsetLeft) - document.getElementById('main').offsetLeft;
+    //relativeY = (e.pageY - document.getElementById('game_object').offsetTop) - document.getElementById('main').offsetTop;
     if(relativeX > 0 && relativeX < canvas.width) {
         paddleX = relativeX - paddleWidth/2;
     }

@@ -30,13 +30,11 @@
             <div id="game_object">
                 <canvas id="breakball_canvas" width="680" height="370"></canvas>
             </div>
-        </div>
-    </div>
-    <div id="right">
-        <div class="inside">
-            <div class="score_box">
-                <h2>Score:</h2>
-                <div id="ajaxReturnBreak"></div>
+            <div id="SCORE">
+                <div class="score_box">
+                    <h2>Score:</h2>
+                    <div id="ajaxReturnBreak"></div>
+                </div>
             </div>
         </div>
     </div>
