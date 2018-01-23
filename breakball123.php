@@ -1,5 +1,8 @@
 <?php
     require_once __DIR__ . '/../!script/php/client_handler/check_blocked_client.script.php';
+    require_once __DIR__ . '/../../!class/php/3rd_party/JShrink/src/JShrink/Minifier.php';
+    require_once __DIR__ . '/../../!class/php/3rd_party/php-packer/src/Packer.php';
+    $jsFile = __DIR__ . "/files/js/breakball123.js";
 ?>
 <!DOCTYPE HTML>
 <html>
@@ -39,6 +42,13 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" src="files/js/breakball123.js"></script>
+<script>
+<?php
+    $js = \JShrink\Minifier::minify(file_get_contents($jsFile));
+    $packer = new Tholu\Packer\Packer($js);
+    $packedJS = $packer->pack();
+    echo $packedJS;
+?>
+</script>
 </body>
 </html>
