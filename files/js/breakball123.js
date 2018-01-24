@@ -7,7 +7,7 @@ var canWidth = canvas.width;
 var x = canvas.width/2;
 var y = canvas.height-90;
 var tempScore;
-var colLeftOrRight = 0.5;
+var colLeftOrRight = 2;
 var tempSpeedX = 0.4;
 var tempSpeedY = 0.6;
 var speedX = 2;
@@ -63,6 +63,12 @@ var startBall = false;
 var stage = 1;
 var time = 0;
 
+
+var blocked = false;
+/**
+ *
+ * @type {*[]}
+ */
 var BUTTONS = [
     mainMenu =[
         play={
@@ -147,14 +153,14 @@ var BUTTONS = [
             'posY': 0,
             'width':100,
             'height':20,
-            'text0':'Volume: <',
+            'text0':'Volume: <)X',
             'text1':'Volume: <))',
             'do0':function () {
                 BgMusic.volume = 0;
                 sound.stat=0;
             },
             'do1':function () {
-                BgMusic.volume = 0.3;
+                BgMusic.volume = 0.1;
                 sound.stat=1;
             },
             'stat':1
@@ -181,22 +187,37 @@ var BUTTONS = [
     ]
 ];
 
+/**
+ *
+ * @type {{get: Cookie.get, set: Cookie.set}}
+ */
 var Cookie = {
     get: function (name) {
         var data    = document.cookie.split(";");
         var cookies = {};
         for(var i = 0; i < data.length; ++i) {
             var tmp = data[i].split("=");
-            if (tmp[0] == name) {
+            if (tmp[0].trim() === name) {
                 return (tmp[1]);
             }
         }
     },
-    set: function (name) {
+    set: function (name,error) {
         var datum = new Date();
         var jahrPlus = datum.getFullYear()+1;
         datum.setFullYear(jahrPlus);
-        playerName = prompt('Bitte geben Sie Ihren Namen ein, um Ihren Score zu speichern.');
+
+        var text = 'Bitte geben Sie Ihren Namen ein, um Ihren Score zu speichern.';
+        if(error === "toshort"){
+            text = 'Der Name war zu kurz. Bitte geben Sie einen längeren ein!';
+        }
+        playerName = prompt(text);
+
+        if(playerName.length < 1){
+            Cookie.set(name,"toshort");
+            return false;
+        }
+
         if(playerName.length >= 12)
         {
             playerName = playerName.substring(0, 12);
@@ -208,11 +229,17 @@ var Cookie = {
 
 init();
 
+/**
+ *
+ */
 function drawTitleScreen(){
     drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,
                     (canHeight/2)-(canHeight/3.5),'80',null,'#fff','BREAKBALL::123',1);
 }
 
+/**
+ *
+ */
 function drawGameOverScreen(){
     drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,
         (canHeight/2)-(canHeight/5),'80',null,'#fff',' - GAME OVER - ',1);
@@ -221,6 +248,9 @@ function drawGameOverScreen(){
     //drawMessageAndBG(null,null,null,null,canWidth-200,(canHeight-100)+25,'25',null,'#fff','Destroyed blocks: '+brickDestr,1);
 }
 
+/**
+ *
+ */
 function drawMenuButtonAndCheckCollision(){
     var menuInt;
     var buttonY;
@@ -258,6 +288,10 @@ function drawMenuButtonAndCheckCollision(){
     }
 }
 
+/**
+ *
+ * @param button
+ */
 function drawPlayingButtonAndCheckCollision(button) {
     var text;
     var menuInt;
@@ -296,20 +330,35 @@ function drawPlayingButtonAndCheckCollision(button) {
     }
 }
 
+/**
+ *
+ * @param buttonWidth
+ * @param buttonHeight
+ * @param buttonX
+ * @param buttonY
+ * @returns {boolean}
+ */
 function checkButtonCollision(buttonWidth,buttonHeight,buttonX,buttonY){
     return !!(relativeX > buttonX && relativeX < buttonX + buttonWidth && relativeY > buttonY && relativeY < buttonY + buttonHeight);
 }
 
+/**
+ *
+ */
 function checkHack() {
-    if(score >= tempScore+10 || score < tempScore){
+    if(score >= tempScore+5 || score < tempScore){
         alert('fail!');
         score = 0;
         status = 'gameover';
+        blocked = true;
     } else {
         tempScore = score;
     }
 }
 
+/**
+ *
+ */
 function init() {
     loadMedia();
     loadBricks();
@@ -326,15 +375,20 @@ function init() {
             };
     })();
 
-    var userNameCookie = Cookie.get('username');
-    if(userNameCookie == null && playerName == undefined){
-        Cookie.set('username',playerName);
+    var cookieName = 'username';
+    var userNameCookie = Cookie.get(cookieName);
+    console.log(userNameCookie);
+    if(userNameCookie === undefined){
+        Cookie.set(cookieName);
     } else {
         playerName = userNameCookie;
     }
     gameLoop();
 }
 
+/**
+ *
+ */
 function loadMedia() {
     BHitSound = new Audio('files/media/brickHit.mp3');
     BLostSound = new Audio('files/media/blost.mp3');
@@ -345,6 +399,9 @@ function loadMedia() {
     BgMusic.autobuffer = true;
 }
 
+/**
+ *
+ */
 function loadBricks() {
     var specialArrInt;
     bricks = [];
@@ -373,16 +430,24 @@ function loadBricks() {
     }
 }
 
+/**
+ *
+ * @param sound
+ * @param loop
+ */
 function playSound(sound,loop) {
     sound.type = 'audio/mpeg';
     try {sound.currentTime = 0;}catch (e){
         console.log('Can\'t set current time to 0: '+e);
     }
     sound.loop = loop;
-    sound.volume = 0.1;
+    sound.volume = 0;
     sound.play();
 }
 
+/**
+ *
+ */
 function drawBricks() {
     var text = "";
     var fontColor = "#000";
@@ -428,6 +493,20 @@ function drawBricks() {
     }
 }
 
+/**
+ *
+ * @param xRec
+ * @param yRec
+ * @param widthRec
+ * @param heightRec
+ * @param fontPosX
+ * @param fontPosY
+ * @param fontSize
+ * @param recColor
+ * @param fontColor
+ * @param text
+ * @param opons
+ */
 function drawMessageAndBG(xRec,yRec,widthRec,heightRec,fontPosX,fontPosY,fontSize,recColor,fontColor,text,opons) {
     if(recColor != null){
         ctx.globalAlpha = opons;
@@ -446,6 +525,9 @@ function drawMessageAndBG(xRec,yRec,widthRec,heightRec,fontPosX,fontPosY,fontSiz
     ctx.globalAlpha = 1;
 }
 
+/**
+ *
+ */
 function drawScore() {
     var width = 100;
     var height = 20;
@@ -454,6 +536,9 @@ function drawScore() {
     drawMessageAndBG(posX,posY,width,height,posX+width/2,posY+height/2,16,'#fff','#0095DD',"Score: " + score,1)
 }
 
+/**
+ *
+ */
 function drawLives() {
     var width = 100;
     var height = 20;
@@ -462,6 +547,10 @@ function drawLives() {
     drawMessageAndBG(posX,posY,width,height,posX+width/2,posY+height/2,16,'#fff','#0095DD',"Lives: "+lives,1)
 }
 
+/**
+ *
+ * @param newTime
+ */
 function drawTime(newTime) {
     var width = 120;
     var height = 20;
@@ -479,6 +568,11 @@ function drawTime(newTime) {
     ctx.fillText("Time: "+ drawingtime +' s',posX+5,posY+height/2);
 }
 
+/**
+ *
+ * @param mvX
+ * @param mvY
+ */
 function drawBall(mvX,mvY) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -508,6 +602,9 @@ function drawBall(mvX,mvY) {
     drawBricks();
 }
 
+/**
+ *
+ */
 function drawPaddle() {
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
@@ -516,6 +613,9 @@ function drawPaddle() {
     ctx.closePath();
 }
 
+/**
+ *
+ */
 function drawSpecs() {
     for(var i=0;i<specials.length;i++){
 
@@ -548,12 +648,18 @@ function drawSpecs() {
     }
 }
 
+/**
+ *
+ */
 function drawCredits() {
-    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/4,'12','#000','#fff','Spiel von Lukas BeckX ;)',0.7);
-    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/3,'12',null,'#fff','Besuch mich auf GitHub: github.com/LBeckX',0.7);
-    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/2.7,'12',null,'#fff','oder auf Facebook: facebook.com/lukas.beck36',0.7);
+    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/4,'12','#000','#fff','Spiel von LBeckX ;)',0.7);
+    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/4+15,'12',null,'#fff','Besuch mich auf GitHub: github.com/LBeckX',0.7);
+    drawMessageAndBG(0,0,canWidth,canHeight,canWidth/2,canHeight/4+30,'12',null,'#fff','oder auf Facebook: facebook.com/lukas.beck36',0.7);
 }
 
+/**
+ *
+ */
 function collisionDetectionField() {
     if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
         dx = -dx;
@@ -566,6 +672,9 @@ function collisionDetectionField() {
     }
 }
 
+/**
+ *
+ */
 function collisionDetectionPaddle() {
     if(y + dy > canvas.height-ballRadius*1.5) {
 
@@ -598,6 +707,11 @@ function collisionDetectionPaddle() {
     }
 }
 
+/**
+ *
+ * @param checkX
+ * @param checkY
+ */
 function collisionDetectionBrick(checkX,checkY) {
     for(var c=0; c<brickColumnCount; c++) {
         for(var r=0; r<brickRowCount; r++) {
@@ -648,6 +762,13 @@ function collisionDetectionBrick(checkX,checkY) {
     }
 }
 
+/**
+ *
+ * @param specX
+ * @param specY
+ * @param specUp
+ * @returns {number}
+ */
 function collisionDetectionSpecs(specX, specY, specUp) {
 
     if(specY +(speedY+2) > canvas.height-(paddleHeight*1.5)){
@@ -658,11 +779,9 @@ function collisionDetectionSpecs(specX, specY, specUp) {
                 case "newWidth":
                     paddleWidth = paddleWidth + paddleTempWith;
                     return 0;
-                    break;
                 case "bigBall":
                     ballRadius = ballRadius + tempBallRadius;
                     return 0;
-                    break;
                 case "fastBall":
                     if(dx > 0){
                         dx = dx+tempSpeedX;
@@ -677,7 +796,6 @@ function collisionDetectionSpecs(specX, specY, specUp) {
                         dy = dy-tempSpeedY;
                     }
                     return 0;
-                    break;
             }
         }
         else if(specY > canvas.height){
@@ -687,6 +805,12 @@ function collisionDetectionSpecs(specX, specY, specUp) {
     return 1;
 }
 
+/**
+ *
+ * @param bX
+ * @param bY
+ * @param spec
+ */
 function checkSpecs(bX,bY,spec){
     var newElement;
     switch(spec) {
@@ -705,6 +829,9 @@ function checkSpecs(bX,bY,spec){
     specials.push(newElement);
 }
 
+/**
+ *
+ */
 function newLevel() {
     win = false;
     startBall = false;
@@ -729,9 +856,11 @@ function newLevel() {
     ballRadius = nullBallRadius;
 }
 
+/**
+ *
+ */
 function gameOverHandler() {
     storeScore();
-    console.log('eintrag');
     status='gameover';
     playSound(GLostSound,false);
     setAllNull();
@@ -744,6 +873,9 @@ function gameOverHandler() {
     stage = 1;
 }
 
+/**
+ *
+ */
 function setAllNull() {
     x = canvas.width/2;
     y = canvas.height-90;
@@ -752,6 +884,9 @@ function setAllNull() {
     specials = new Array(0);
 }
 
+/**
+ *
+ */
 function setStart() {
     x = canvas.width/2;
     y = canvas.height-90;
@@ -760,6 +895,9 @@ function setStart() {
     paddleX = (canvas.width-paddleWidth)/2;
 }
 
+/**
+ *
+ */
 function gameLoop() {
     if(status == 'mainmenu'){
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -851,6 +989,9 @@ function gameLoop() {
     requestframe(gameLoop);
 }
 
+/**
+ *
+ */
 function storeScore(){
     if (window.XMLHttpRequest) {
         ajaxRequest = new XMLHttpRequest();
@@ -860,18 +1001,18 @@ function storeScore(){
         } catch (e) {
             try {
                 ajaxRequest = new ActiveXObject('Microsoft.XMLHTTP');
-            } catch (e) {}
+            } catch (e) {
+                console.error("Ajax error: "+e);
+            }
         }
     }
-    if(score < 3000) {
-        if (sendTrue != 1 && playerName != undefined) {
-            var string = "name=" + playerName + "&score=" + score;
-            var url = '/!script/php/score_handler/score_safer.script.php?table=breakball123_highScore';
-            ajaxRequest.open("post", url, true);
-            ajaxRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            ajaxRequest.send(string);
-            sendTrue = 1;
-        }
+    if (sendTrue != 1 && playerName != undefined) {
+        var string = "name=" + playerName + "&score=" + score;
+        var url = '/!script/php/score_handler/score_safer.script.php?table=breakball123_highScore';
+        ajaxRequest.open("post", url, true);
+        ajaxRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        ajaxRequest.send(string);
+        sendTrue = 1;
     }
 }
 
@@ -881,6 +1022,10 @@ document.addEventListener("mousemove", mouseMoveHandler, false);
 document.addEventListener("click", mouseClickHandler, false);
 document.addEventListener('touchmove', touchMoveHandler , false);
 
+/**
+ *
+ * @param e
+ */
 function keyDownHandler(e) {
     if(e.keyCode == 39) {
         rightPressed = true;
@@ -897,6 +1042,10 @@ function keyDownHandler(e) {
 
 }
 
+/**
+ *
+ * @param e
+ */
 function keyUpHandler(e) {
     if (e.keyCode == 39) {
         rightPressed = false;
@@ -906,6 +1055,10 @@ function keyUpHandler(e) {
     }
 }
 
+/**
+ *
+ * @param evt
+ */
 function mouseMoveHandler(evt) {
     var rect = canvas.getBoundingClientRect();
     relativeX = evt.clientX - rect.left;
@@ -917,12 +1070,18 @@ function mouseMoveHandler(evt) {
     }
 }
 
+/**
+ *
+ */
 function mouseClickHandler(){
     mouseClick = true;
 }
 
+/**
+ *
+ * @param e
+ */
 function touchMoveHandler(e) {
-
     var t = e.targetTouches;
     console.log(e);
     for (var i=0; i<t.length; i++) {
